@@ -1,0 +1,9 @@
+# Git, build, IDE
+target/
+.idea/
+*.iml
+.DS_Store
+
+# Local env
+.env
+.env.*
