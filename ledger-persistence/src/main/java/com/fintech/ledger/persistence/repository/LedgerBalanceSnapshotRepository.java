@@ -1,0 +1,9 @@
+package com.fintech.ledger.persistence.repository;
+
+import com.fintech.ledger.persistence.entity.LedgerBalanceSnapshotEntity;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface LedgerBalanceSnapshotRepository
+        extends JpaRepository<LedgerBalanceSnapshotEntity, UUID> {
+}

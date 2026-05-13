@@ -12,6 +12,7 @@
 
   <modules>
     <module>ledger-domain</module>
+    <module>ledger-persistence</module>
   </modules>
 
   <properties>
