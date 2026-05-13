@@ -1,0 +1,115 @@
+spring:
+  application:
+    name: ledger-platform
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ledger}
+    username: ${DB_USER:ledger}
+    password: ${DB_PASSWORD:ledger}
+    hikari:
+      maximum-pool-size: 20
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: ledger-platform
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "java.util,java.lang,com.fintech.ledger"
+    listener:
+      ack-mode: manual_immediate
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# OpenAPI 3 + Swagger UI (springdoc-openapi)
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+    show-extensions: true
+    doc-expansion: none
+  show-actuator: false
+  writer-with-default-pretty-printer: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+      export:
+        enabled: ${OTEL_EXPORTER_OTLP_ENABLED:false}
+
+ledger:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-change-me-minimum-256-bits-for-hs256-xxxxxxxx}
+    issuer: ledger-platform
+    access-token-ttl-minutes: 60
+  webhook:
+    hmac-secret: ${WEBHOOK_HMAC_SECRET:dev-hmac-secret}
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_RPM:120}
+  system-user-email: system@ledger.internal
+  withdrawal:
+    # Amounts in minor units at or above this require POST /api/v1/approvals/{id}/approve.
+    # Default disables the workflow (use a finite value to enable, e.g. 5000000).
+    approval-threshold-minor: ${WITHDRAWAL_APPROVAL_THRESHOLD_MINOR:9223372036854775807}
+  kafka:
+    topics:
+      transaction-completed: ledger.transaction.completed
+      payment-failed: ledger.payment.failed
+      reconciliation-mismatch: ledger.reconciliation.mismatch
+      withdrawal-processed: ledger.withdrawal.processed
+  snapshot:
+    cron: 0 0 0,12 * * *
+  outbox:
+    publish-delay-ms: 1000
+  reconciliation:
+    cron: 0 15 * * * *
+
+logging:
+  level:
+    root: INFO
+    com.fintech.ledger: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'} %-5level [%thread] trace=%X{traceId:-} %logger - %msg%n"
