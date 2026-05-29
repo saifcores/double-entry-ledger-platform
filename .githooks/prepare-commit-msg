@@ -1,0 +1,10 @@
+#!/bin/sh
+# Remove Cursor attribution trailers before the commit is finalized.
+msg_file="$1"
+[ -f "$msg_file" ] || exit 0
+
+# macOS/BSD sed
+sed -i '' \
+  -e '/^[Cc]o-[Aa]uthored-[Bb]y:.*[Cc]ursor.*cursoragent@cursor\.com/d' \
+  -e '/^Made-with: Cursor/d' \
+  "$msg_file"
