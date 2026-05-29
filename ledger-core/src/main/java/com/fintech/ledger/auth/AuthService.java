@@ -7,6 +7,7 @@ import com.fintech.ledger.persistence.repository.UserRepository;
 import com.fintech.ledger.security.JwtTokenService;
 import com.fintech.ledger.security.LedgerUserDetails;
 import com.fintech.ledger.security.LedgerUserDetailsService;
+import com.fintech.ledger.wallet.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +28,7 @@ public class AuthService {
   private final AuthenticationManager authenticationManager;
   private final LedgerUserDetailsService userDetailsService;
   private final JwtTokenService jwtTokenService;
+  private final WalletService walletService;
 
   @Transactional
   public String register(String email, String password, String preferredCurrency) {
@@ -43,6 +45,7 @@ public class AuthService {
     u.setPreferredCurrency(preferredCurrency.toUpperCase());
     u.getRoles().add(userRole);
     userRepository.save(u);
+    walletService.ensureWallet(u.getId(), u.getPreferredCurrency());
     LedgerUserDetails details = (LedgerUserDetails) userDetailsService.loadUserByUsername(u.getEmail());
     return jwtTokenService.issueAccessToken(details);
   }

@@ -26,6 +26,10 @@ public class SystemAccountService {
     return findByCode("PLATFORM_FEE_REVENUE_" + currency.toUpperCase());
   }
 
+  public UUID suspenseAccountId(String currency) {
+    return findByCode("SUSPENSE_" + currency.toUpperCase());
+  }
+
   private UUID findByCode(String code) {
     AccountEntity acc = accountRepository
         .findByCode(code)

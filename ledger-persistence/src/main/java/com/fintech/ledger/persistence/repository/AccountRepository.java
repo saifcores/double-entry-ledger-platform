@@ -22,4 +22,8 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select a from AccountEntity a where a.id in :ids")
   List<AccountEntity> findAllByIdForUpdate(@Param("ids") Collection<UUID> ids);
+
+  List<AccountEntity> findByCurrencyOrderByCodeAsc(String currency);
+
+  List<AccountEntity> findAllByOrderByCodeAsc();
 }

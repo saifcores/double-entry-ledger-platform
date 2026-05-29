@@ -5,6 +5,7 @@ import com.fintech.ledger.persistence.entity.AccountEntity;
 import com.fintech.ledger.persistence.entity.UserEntity;
 import com.fintech.ledger.persistence.entity.WalletEntity;
 import com.fintech.ledger.persistence.repository.AccountRepository;
+import com.fintech.ledger.persistence.repository.FraudFlagRepository;
 import com.fintech.ledger.persistence.repository.UserRepository;
 import com.fintech.ledger.persistence.repository.WalletRepository;
 import java.util.UUID;
@@ -21,6 +22,7 @@ public class WalletService {
   private final WalletRepository walletRepository;
   private final AccountRepository accountRepository;
   private final UserRepository userRepository;
+  private final FraudFlagRepository fraudFlagRepository;
 
   @Transactional
   public WalletEntity ensureWallet(UUID userId, String currency) {
@@ -74,6 +76,10 @@ public class WalletService {
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet missing"));
     if (locked.isFrozen() || locked.isFraudLocked()) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Wallet locked");
+    }
+    if (fraudFlagRepository.existsBySubjectTypeAndSubjectIdAndActiveTrue(
+        "WALLET", locked.getId())) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Wallet fraud flagged");
     }
     if (locked.getUser() != null && locked.getUser().isFrozen()) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "User frozen");

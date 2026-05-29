@@ -2,12 +2,15 @@ package com.fintech.ledger.api;
 
 import com.fintech.ledger.security.SecurityContextSupport;
 import com.fintech.ledger.transaction.PaymentApplicationService;
+import com.fintech.ledger.query.LedgerQueryService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,9 +25,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApprovalController {
 
   private final PaymentApplicationService payments;
+  private final LedgerQueryService queries;
   private final SecurityContextSupport security;
 
   public record RejectBody(String reason) {}
+
+  @GetMapping("/pending")
+  @PreAuthorize("hasAnyRole('COMPLIANCE','OPERATIONS','ADMIN')")
+  public List<LedgerQueryService.ApprovalView> pending() {
+    return queries.listPendingApprovals();
+  }
 
   @PostMapping("/{id}/approve")
   @PreAuthorize("hasAnyRole('COMPLIANCE','OPERATIONS','ADMIN')")

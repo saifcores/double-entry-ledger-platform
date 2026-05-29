@@ -22,4 +22,7 @@ public interface WalletRepository extends JpaRepository<WalletEntity, UUID> {
 
     @EntityGraph(attributePaths = "account")
     Optional<WalletEntity> findByAccountId(UUID accountId);
+
+    @EntityGraph(attributePaths = "account")
+    java.util.List<WalletEntity> findByUser_IdOrderByCurrencyAsc(UUID userId);
 }
