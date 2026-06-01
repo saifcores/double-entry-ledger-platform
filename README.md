@@ -66,15 +66,37 @@ docker compose up --build
 
 Compose waits for healthy **PostgreSQL**, **Redis**, and **Kafka** before starting **ledger-app**. On first connect the app runs **Flyway** migrations against the `ledger` database.
 
+If you previously ran the stack with Hibernate `create-drop` (empty Flyway history), reset Postgres before the next start:
+
+```bash
+docker compose down -v && docker compose up --build
+```
+
+### Seed users (local dev)
+
+After migrations, these accounts are available for `POST /api/v1/auth/login` (password **`ChangeMe123!`** for all):
+
+| Email                     | Role       | Currency |
+| ------------------------- | ---------- | -------- |
+| `admin@ledger.local`      | ADMIN      | USD      |
+| `user@ledger.local`       | USER       | USD      |
+| `merchant@ledger.local`   | MERCHANT   | USD      |
+| `ops@ledger.local`        | OPERATIONS | USD      |
+| `compliance@ledger.local` | COMPLIANCE | USD      |
+| `alice@ledger.local`      | USER       | USD      |
+| `bob@ledger.local`        | USER       | EUR      |
+
+Defined in `V3__seed_users.sql` (wallets and chart accounts included).
+
 ### URLs (local Compose)
 
-| Service      | URL                                                                                                                                                                        | Notes                                         |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| HTTP API     | [http://localhost:8080](http://localhost:8080)                                                                                                                             | Default `SERVER_PORT` is 8080                 |
+| Service      | URL                                                                                                                                                                        | Notes                                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| HTTP API     | [http://localhost:8080](http://localhost:8080)                                                                                                                             | Default `SERVER_PORT` is 8080                                                                                         |
 | Swagger UI   | [http://localhost:8080/api-docs](http://localhost:8080/api-docs) → redirect, or [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) |
 | OpenAPI JSON | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)                                                                                                     |
-| Prometheus   | [http://localhost:9090](http://localhost:9090)                                                                                                                             | Scrapes `ledger-app:8080/actuator/prometheus` |
-| Grafana      | [http://localhost:3000](http://localhost:3000)                                                                                                                             | Default login `admin` / `admin`               |
+| Prometheus   | [http://localhost:9090](http://localhost:9090)                                                                                                                             | Scrapes `ledger-app:8080/actuator/prometheus`                                                                         |
+| Grafana      | [http://localhost:3000](http://localhost:3000)                                                                                                                             | `admin` / `admin`; dashboard **Ledger Platform — Monitoring** (folder *Ledger Platform*) is provisioned automatically |
 
 Kafka is available on the host at **localhost:9092** (broker advertised for host access; the app uses `kafka:29092` inside the Docker network per `docker-compose.yml`).
 
@@ -141,6 +163,7 @@ Spring Security **permits unauthenticated** access to `/api/v1/auth/**` and `/ap
 - **Metrics:** `GET /actuator/prometheus` (Prometheus in Compose scrapes `ledger-app:8080`).
 - **Health:** `GET /actuator/health`, `GET /actuator/info`.
 - **Traces:** Enable OTLP export via env vars; default OTLP endpoint in config is `http://localhost:4318/v1/traces`.
+- **Grafana:** After `docker compose up`, open [http://localhost:3000](http://localhost:3000) → **Dashboards** → folder **Ledger Platform** → **Ledger Platform — Monitoring**. The datasource Prometheus and dashboard JSON live under `monitoring/grafana/` (provisioned on startup; no manual setup).
 
 ## Architecture
 
@@ -243,7 +266,7 @@ Example unit test: `ledger-core/src/test/java/com/fintech/ledger/ledger/BalanceM
 - **Reconciliation** — Cron from `ledger.reconciliation.cron` in `application.yml`.
 - **Balance snapshots** — `BalanceSnapshotJob` (`ledger.snapshot.cron`) maintains `ledger_balance_snapshots` for selected clearing accounts.
 
-Seeded chart-of-account and system-wallet data includes **USD** and **EUR** (see `V2__seed_roles_and_accounts.sql`).
+Seeded chart-of-account and system-wallet data includes **USD** and **EUR** (see `V2__seed_roles_and_accounts.sql`). Dev users and their wallets are in `V3__seed_users.sql`.
 
 ## License
 

@@ -31,7 +31,7 @@ CREATE TABLE accounts (
     code VARCHAR(64) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(32) NOT NULL,
-    currency CHAR(3) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     parent_id UUID REFERENCES accounts (id),
     frozen BOOLEAN NOT NULL DEFAULT FALSE,
     balance_minor BIGINT NOT NULL DEFAULT 0,
@@ -51,7 +51,7 @@ CREATE TABLE wallets (
     user_id UUID REFERENCES users (id) ON DELETE RESTRICT,
     account_id UUID NOT NULL UNIQUE REFERENCES accounts (id) ON DELETE RESTRICT,
     external_ref VARCHAR(128),
-    currency CHAR(3) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     label VARCHAR(255),
     frozen BOOLEAN NOT NULL DEFAULT FALSE,
     fraud_locked BOOLEAN NOT NULL DEFAULT FALSE,
@@ -73,7 +73,7 @@ CREATE TABLE transactions (
     public_id VARCHAR(64) NOT NULL UNIQUE,
     type VARCHAR(32) NOT NULL,
     status VARCHAR(32) NOT NULL,
-    currency CHAR(3) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     idempotency_key VARCHAR(128) NOT NULL,
     idempotency_scope VARCHAR(64) NOT NULL,
     correlation_id VARCHAR(128),
@@ -100,7 +100,7 @@ CREATE TABLE journal_entries (
     account_id UUID NOT NULL REFERENCES accounts (id) ON DELETE RESTRICT,
     direction VARCHAR(8) NOT NULL,
     amount_minor BIGINT NOT NULL CHECK (amount_minor > 0),
-    currency CHAR(3) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     memo TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_journal_direction CHECK (direction IN ('DEBIT', 'CREDIT'))
@@ -144,7 +144,7 @@ CREATE TABLE provider_transactions (
     provider_ref VARCHAR(256) NOT NULL,
     status VARCHAR(32) NOT NULL,
     amount_minor BIGINT NOT NULL,
-    currency CHAR(3) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     payload_encrypted BYTEA,
     internal_transaction_id UUID REFERENCES transactions (id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -198,7 +198,7 @@ CREATE TABLE ledger_balance_snapshots (
     account_id UUID NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
     as_of TIMESTAMPTZ NOT NULL,
     balance_minor BIGINT NOT NULL,
-    currency CHAR(3) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
