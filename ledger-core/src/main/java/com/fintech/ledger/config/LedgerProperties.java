@@ -60,6 +60,14 @@ public class LedgerProperties {
 
     @Positive
     private int requestsPerMinute = 120;
+
+    /**
+     * Whether to key unauthenticated rate limiting on the client-supplied X-Forwarded-For
+     * header. Only enable this when the app sits behind a trusted reverse proxy that
+     * overwrites (rather than appends to) that header; otherwise callers can spoof it to
+     * dodge the limit entirely.
+     */
+    private boolean trustForwardedFor = false;
   }
 
   @Data

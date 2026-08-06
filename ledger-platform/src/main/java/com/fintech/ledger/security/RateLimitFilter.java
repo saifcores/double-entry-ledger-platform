@@ -66,9 +66,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     if (auth != null && auth.getPrincipal() instanceof LedgerUserDetails user) {
       return "user:" + user.getId();
     }
-    String forwarded = request.getHeader("X-Forwarded-For");
-    if (forwarded != null && !forwarded.isBlank()) {
-      return "ip:" + forwarded.split(",")[0].trim();
+    if (properties.getRateLimit().isTrustForwardedFor()) {
+      String forwarded = request.getHeader("X-Forwarded-For");
+      if (forwarded != null && !forwarded.isBlank()) {
+        return "ip:" + forwarded.split(",")[0].trim();
+      }
     }
     return "ip:" + request.getRemoteAddr();
   }

@@ -8,8 +8,10 @@ import com.fintech.ledger.persistence.repository.AccountRepository;
 import com.fintech.ledger.persistence.repository.FraudFlagRepository;
 import com.fintech.ledger.persistence.repository.UserRepository;
 import com.fintech.ledger.persistence.repository.WalletRepository;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,9 +29,19 @@ public class WalletService {
   @Transactional
   public WalletEntity ensureWallet(UUID userId, String currency) {
     String ccy = currency.toUpperCase();
-    return walletRepository
-        .findByUser_IdAndCurrency(userId, ccy)
-        .orElseGet(() -> provisionWallet(userId, ccy));
+    Optional<WalletEntity> existing = walletRepository.findByUser_IdAndCurrency(userId, ccy);
+    if (existing.isPresent()) {
+      return existing.get();
+    }
+    try {
+      return provisionWallet(userId, ccy);
+    } catch (DataIntegrityViolationException e) {
+      // Concurrent request already provisioned this user/currency wallet under the
+      // uq_wallets_user_currency constraint; fall back to the row it created.
+      return walletRepository
+          .findByUser_IdAndCurrency(userId, ccy)
+          .orElseThrow(() -> e);
+    }
   }
 
   @Transactional(readOnly = true)
@@ -42,8 +54,10 @@ public class WalletService {
                 HttpStatus.NOT_FOUND, "Wallet not found for currency " + ccy));
   }
 
-  @Transactional
-  protected WalletEntity provisionWallet(UUID userId, String currency) {
+  // Not @Transactional: only ever self-invoked from ensureWallet, which already runs
+  // inside a transaction. A Spring proxy never intercepts a self-invocation, so an
+  // annotation here would have no effect and could mislead readers into thinking it does.
+  private WalletEntity provisionWallet(UUID userId, String currency) {
     UserEntity user = userRepository
         .findById(userId)
         .orElseThrow(
