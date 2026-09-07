@@ -8,6 +8,7 @@ A production-minded **modular monolith** for wallets and double-entry ledger flo
 - [Technology stack](#technology-stack)
 - [Repository layout](#repository-layout)
 - [Quick start](#quick-start)
+- [Live demo UI](#live-demo-ui)
 - [Configuration](#configuration)
 - [HTTP API and documentation](#http-api-and-documentation)
 - [Observability](#observability)
@@ -55,7 +56,7 @@ Logical packages (mainly under `ledger-core` and `ledger-platform`): `auth`, `wa
 
 ## Quick start
 
-**Requirements:** JDK 21, Docker with Docker Compose v2.
+**Requirements:** JDK **21** (Temurin), Docker with Docker Compose v2. Prefer `./mvnw` (or `sdk use java 21.0.8-tem`) — a system JDK 11/17 will fail the Maven enforcer.
 
 From the repository root:
 
@@ -88,10 +89,38 @@ After migrations, these accounts are available for `POST /api/v1/auth/login` (pa
 
 Defined in `V3__seed_users.sql` (wallets and chart accounts included).
 
+## Live demo UI
+
+A bundled showcase UI is served at the app root so reviewers can exercise the real API without Postman:
+
+| URL                                              | Purpose                                                                                                           |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| [http://localhost:8080/](http://localhost:8080/) | Interactive demo (wallets, deposit faucet, P2P, merchant pay, withdraw, journal expand, trial balance, approvals) |
+
+What it demonstrates against live endpoints:
+
+- JWT login / register (seeded users or a new account)
+- Wallet balances and transaction history
+- Expanding a transaction to inspect balanced `journal_entries`
+- Demo-only deposit faucet (`POST /api/v1/demo/self-deposit`) that reuses the same posting path as provider settlement
+- Transfers, merchant payments (with fee split), withdrawals, and reversals
+- Admin/ops trial balance + pending maker/checker approvals
+- A live HTTP call log so every click is visibly a real request
+
+Demo-only API routes under `/api/v1/demo/**` are gated by `ledger.demo.enabled` (`DEMO_MODE_ENABLED`, default `true`). Turn this **off** for any non-sandbox deployment — the faucet must not ship to production.
+
+Suggested walkthrough:
+
+1. Open the demo, quick-login as `user@ledger.local`.
+2. **Add funds**, then **Transfer** to Alice or Bob.
+3. Expand the resulting transaction to show debit/credit lines.
+4. Quick-login as `admin@ledger.local` to inspect the **trial balance**.
+
 ### URLs (local Compose)
 
 | Service      | URL                                                                                                                                                                        | Notes                                                                                                                 |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Demo UI      | [http://localhost:8080/](http://localhost:8080/)                                                                                                                           | Bundled static showcase (`static/index.html`)                                                                         |
 | HTTP API     | [http://localhost:8080](http://localhost:8080)                                                                                                                             | Default `SERVER_PORT` is 8080                                                                                         |
 | Swagger UI   | [http://localhost:8080/api-docs](http://localhost:8080/api-docs) → redirect, or [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) |
 | OpenAPI JSON | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)                                                                                                     |
@@ -130,6 +159,7 @@ Primary settings live in [ledger-platform/src/main/resources/application.yml](le
 | `SERVER_PORT`                                               | HTTP port (default 8080)                                                                                                                  |
 | `RATE_LIMIT_RPM`                                            | Requests per minute per key (default 120)                                                                                                 |
 | `WITHDRAWAL_APPROVAL_THRESHOLD_MINOR`                       | Above this minor-unit amount, withdrawals require approval (default `Long.MAX_VALUE` disables the workflow; try e.g. `5000000` to enable) |
+| `DEMO_MODE_ENABLED`                                         | Enables `/api/v1/demo/**` faucet + directory used by the showcase UI (default `true`; set `false` outside sandboxes)                      |
 | `OTEL_EXPORTER_OTLP_ENABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional tracing export                                                                                                                   |
 
 Topic names and other ledger-specific toggles are under the `ledger.*` prefix in `application.yml`.
@@ -152,6 +182,9 @@ Interactive documentation is served by **springdoc-openapi**. Use **Authorize** 
 | `POST` | `/api/v1/admin/wallets/{walletId}/unfreeze`   | Unfreeze wallet                                                   |
 | `POST` | `/api/v1/admin/accounts/{accountId}/freeze`   | Freeze ledger account                                             |
 | `POST` | `/api/v1/admin/accounts/{accountId}/unfreeze` | Unfreeze ledger account                                           |
+| `GET`  | `/`                                           | Bundled live demo UI (`static/index.html`)                        |
+| `POST` | `/api/v1/demo/self-deposit`                   | Demo faucet deposit (requires `DEMO_MODE_ENABLED=true` + JWT)     |
+| `GET`  | `/api/v1/demo/directory`                      | Seeded-user directory for transfer pickers (demo mode only)       |
 | `GET`  | `/api-docs`                                   | Redirect to Swagger UI                                            |
 
 Spring Security **permits unauthenticated** access to `/api/v1/auth/**` and `/api/v1/webhooks/**` so you can expose registration, login, and signed deposit webhooks without a JWT. The application service **`PaymentApplicationService.deposit`** implements provider-backed deposits; wire it from a webhook controller that validates signatures with [WebhookSignatureVerifier](ledger-core/src/main/java/com/fintech/ledger/webhook/WebhookSignatureVerifier.java). That component computes **hex-encoded HMAC-SHA256** of the **raw request body** using `ledger.webhook.hmac-secret` (`WEBHOOK_HMAC_SECRET`) and compares it to the provided hex signature in **constant time**. Choose an HTTP header (for example `X-Signature`) in your controller and pass the raw body plus the header value into `isValid`.
