@@ -64,6 +64,7 @@ services:
     build:
       context: .
       dockerfile: ledger-platform/Dockerfile
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,8 +83,19 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-minimum-256-bits-for-hs256-xxxxxxxx}
       WEBHOOK_HMAC_SECRET: ${WEBHOOK_HMAC_SECRET:-dev-hmac-secret}
+      DEMO_MODE_ENABLED: ${DEMO_MODE_ENABLED:-true}
     ports:
       - "8080:8080"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q UP",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
 
   prometheus:
     image: prom/prometheus:v2.55.1

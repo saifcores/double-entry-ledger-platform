@@ -25,6 +25,19 @@ public class LedgerProperties {
 
   private final Withdrawal withdrawal = new Withdrawal();
 
+  private final Demo demo = new Demo();
+
+  @Data
+  public static class Demo {
+
+    /**
+     * Enables the demo-only endpoints under /api/v1/demo (self-service funds faucet,
+     * seeded-user directory) used by the bundled showcase UI. Turn this off in real
+     * production deployments; it only makes sense for a sandboxed demo/portfolio instance.
+     */
+    private boolean enabled = true;
+  }
+
   @Data
   public static class Withdrawal {
 

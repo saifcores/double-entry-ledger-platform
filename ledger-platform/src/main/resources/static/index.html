@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ledger — Live Demo</title>
+    <meta
+      name="description"
+      content="Interactive demo of a production-minded double-entry ledger platform. Real JWT auth, real postings, real journal."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 8h16M4 12h10M4 16h14"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+            <path
+              d="M17 10l3 2-3 2"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span class="brand-name">Ledger</span>
+      </div>
+      <div id="session-box" class="session-box hidden">
+        <div class="session-meta">
+          <span id="session-email"></span>
+          <span id="session-roles" class="roles"></span>
+        </div>
+        <button id="logout-btn" type="button" class="btn btn-ghost">
+          Log out
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section id="auth-view" class="auth-stage">
+        <div class="auth-hero reveal">
+          <p class="eyebrow">Live sandbox</p>
+          <h1 class="hero-brand">Ledger</h1>
+          <p class="hero-line">
+            Double-entry money movement you can click through.
+          </p>
+          <p class="hero-support">
+            Every action below hits the real Spring Boot API — JWT auth,
+            balanced journal postings, idempotency, and an immutable audit
+            trail. No mocks.
+          </p>
+          <div class="hero-links">
+            <a href="/swagger-ui/index.html">Swagger API</a>
+          </div>
+        </div>
+
+        <div class="auth-panels reveal delay-1">
+          <div class="panel">
+            <h2>Quick demo login</h2>
+            <p class="muted">
+              Seeded accounts. Password for all: <code>ChangeMe123!</code>
+            </p>
+            <div id="quick-login-list" class="quick-login-list"></div>
+          </div>
+
+          <div class="panel">
+            <h2>Sign in</h2>
+            <form id="login-form">
+              <label
+                >Email
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  autocomplete="username"
+              /></label>
+              <label
+                >Password
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  autocomplete="current-password"
+              /></label>
+              <button type="submit" class="btn btn-primary">Log in</button>
+            </form>
+            <div class="divider"><span>or register</span></div>
+            <form id="register-form">
+              <label>Email <input type="email" name="email" required /></label>
+              <label
+                >Password
+                <input type="password" name="password" minlength="8" required
+              /></label>
+              <label
+                >Currency
+                <select name="preferredCurrency">
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-secondary">
+                Create account
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="app-view" class="app-stage hidden">
+        <div class="app-intro reveal">
+          <h2>Workspace</h2>
+          <p class="muted">
+            Fund a wallet, move money, then expand any transaction to inspect
+            the balanced journal lines.
+          </p>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="panel reveal">
+            <h2>Your wallets</h2>
+            <div id="wallets-list" class="wallets-list"></div>
+          </div>
+
+          <div class="panel reveal delay-1">
+            <h2>Actions</h2>
+            <div class="tabs" id="action-tabs" role="tablist">
+              <button
+                type="button"
+                class="tab active"
+                data-tab="deposit"
+                role="tab"
+                aria-selected="true"
+              >
+                Add funds
+              </button>
+              <button type="button" class="tab" data-tab="transfer" role="tab">
+                Transfer
+              </button>
+              <button type="button" class="tab" data-tab="merchant" role="tab">
+                Merchant pay
+              </button>
+              <button type="button" class="tab" data-tab="withdraw" role="tab">
+                Withdraw
+              </button>
+            </div>
+
+            <form id="deposit-form" class="tab-panel" role="tabpanel">
+              <p class="muted">
+                Demo faucet — settles a deposit through the same posting path a
+                provider webhook would use. No client secrets.
+              </p>
+              <label
+                >Amount
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  min="0.01"
+                  value="100"
+                  required
+              /></label>
+              <label
+                >Currency
+                <select name="currency">
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary">Deposit</button>
+            </form>
+
+            <form id="transfer-form" class="tab-panel hidden" role="tabpanel">
+              <label
+                >Recipient
+                <select name="toUserId" class="directory-select"></select>
+              </label>
+              <label
+                >Amount
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  min="0.01"
+                  value="10"
+                  required
+              /></label>
+              <label
+                >Currency
+                <select name="currency">
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary">Transfer</button>
+            </form>
+
+            <form id="merchant-form" class="tab-panel hidden" role="tabpanel">
+              <label
+                >Merchant
+                <select name="merchantUserId" class="directory-select"></select>
+              </label>
+              <label
+                >Gross amount
+                <input
+                  type="number"
+                  name="gross"
+                  step="0.01"
+                  min="0.01"
+                  value="20"
+                  required
+              /></label>
+              <label
+                >Platform fee
+                <input
+                  type="number"
+                  name="fee"
+                  step="0.01"
+                  min="0"
+                  value="1"
+                  required
+              /></label>
+              <label
+                >Currency
+                <select name="currency">
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary">
+                Pay merchant
+              </button>
+            </form>
+
+            <form id="withdraw-form" class="tab-panel hidden" role="tabpanel">
+              <p class="muted">
+                Large withdrawals can enter maker/checker when the approval
+                threshold is configured.
+              </p>
+              <label
+                >Amount
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  min="0.01"
+                  value="5"
+                  required
+              /></label>
+              <label
+                >Currency
+                <select name="currency">
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary">Withdraw</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel reveal">
+          <h2>Your transactions</h2>
+          <p class="muted">
+            Expand a row to see the balanced double-entry journal (debits always
+            equal credits).
+          </p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Currency</th>
+                  <th>When</th>
+                  <th>Public ID</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="txn-tbody"></tbody>
+            </table>
+          </div>
+          <p id="txn-empty" class="muted empty-state hidden">
+            No transactions yet — add funds to get started.
+          </p>
+        </div>
+
+        <div id="approvals-card" class="panel hidden reveal">
+          <div class="panel-head">
+            <div>
+              <h2>Pending approvals</h2>
+              <p class="muted">
+                Maker/checker queue for withdrawals above threshold.
+              </p>
+            </div>
+            <button
+              type="button"
+              id="refresh-approvals-btn"
+              class="btn btn-ghost btn-small"
+            >
+              Refresh
+            </button>
+          </div>
+          <div id="approvals-list" class="approvals-list"></div>
+        </div>
+
+        <div id="admin-card" class="panel hidden reveal">
+          <div class="panel-head">
+            <div>
+              <h2>Trial balance</h2>
+              <p class="muted">
+                Ledger invariant: sum of debits equals sum of credits across
+                every account.
+              </p>
+            </div>
+            <label class="inline-label"
+              >Currency
+              <select id="trial-currency">
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </label>
+          </div>
+          <div id="trial-balance"></div>
+        </div>
+
+        <div class="panel reveal">
+          <div class="panel-head">
+            <h2>Live API call log</h2>
+            <button
+              type="button"
+              id="clear-log-btn"
+              class="btn btn-ghost btn-small"
+            >
+              Clear
+            </button>
+          </div>
+          <div id="call-log" class="call-log" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+
+    <footer>
+      <p>
+        Spring Boot 3 · PostgreSQL · Redis · Kafka outbox · JWT · rate limiting
+        · idempotent postings · maker/checker · DB-enforced immutable journal.
+        <a href="/swagger-ui/index.html">Full API reference</a>
+      </p>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

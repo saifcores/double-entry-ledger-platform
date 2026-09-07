@@ -124,7 +124,16 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>repackage</id>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
+          <!-- Parent aggregator skips Boot packaging; this module must emit the fat JAR. -->
           <skip>false</skip>
           <mainClass>com.fintech.ledger.LedgerPlatformApplication</mainClass>
           <excludes>
