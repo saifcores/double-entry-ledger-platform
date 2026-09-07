@@ -34,14 +34,15 @@ public class ReconciliationJob {
     for (String currency : List.of("USD", "EUR")) {
       String clearingCode = "PROVIDER_CLEARING_" + currency;
       long ledgerMinor = accountRepository.findByCode(clearingCode).map(a -> a.getBalanceMinor()).orElse(0L);
+      // Compare cumulative settled provider funds to the clearing account (same
+      // basis).
+      // Do not bind java.time.Instant directly via JdbcTemplate — PostgreSQL cannot
+      // infer the type.
       Long providerMinor = jdbcTemplate.queryForObject(
           "select coalesce(sum(amount_minor),0) from provider_transactions "
-              + "where currency = ? and created_at between ? and ? "
-              + "and status = 'SETTLED'",
+              + "where currency = ? and status = 'SETTLED'",
           Long.class,
-          currency,
-          start,
-          end);
+          currency);
       long provider = providerMinor == null ? 0L : providerMinor;
       long drift = Math.abs(ledgerMinor - provider);
       if (drift > 0) {
@@ -54,8 +55,9 @@ public class ReconciliationJob {
         Map<String, Object> details = new HashMap<>();
         details.put("currency", currency);
         details.put("clearingLedgerMinor", ledgerMinor);
-        details.put("providerMinorWindow", provider);
+        details.put("providerSettledMinor", provider);
         details.put("drift", drift);
+        details.put("checkedAt", end.toString());
         report.setDetails(details);
         reconciliationReportRepository.save(report);
         kafkaTemplate.send(
@@ -66,11 +68,21 @@ public class ReconciliationJob {
                 currency,
                 "drift",
                 drift,
+                "clearingLedgerMinor",
+                ledgerMinor,
+                "providerSettledMinor",
+                provider,
                 "periodStart",
                 start.toString(),
                 "periodEnd",
                 end.toString()));
         log.warn("Reconciliation drift {} {} minor {}", currency, clearingCode, drift);
+      } else {
+        log.info(
+            "Reconciliation OK {} clearing={} providerSettled={}",
+            currency,
+            ledgerMinor,
+            provider);
       }
     }
   }
